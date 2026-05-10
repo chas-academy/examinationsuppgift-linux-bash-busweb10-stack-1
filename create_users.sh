@@ -1,29 +1,46 @@
 #!/bin/bash
 
+# Kontrollera att scriptet körs som root
 if [ "$EUID" -ne 0 ]; then
-  echo "Du måste vara root"
-  exit 1
+    echo "Du måste köra scriptet som root!"
+    exit 1
 fi
 
-for user in "$@"
+# Kontrollera att minst ett användarnamn skickas in
+if [ $# -eq 0 ]; then
+    echo "Ange minst ett användarnamn"
+    exit 1
+fi
+
+# Loop genom alla användare
+for username in "$@"
 do
-  echo "Skapar användare: $user"
+    # Skapa användare
+    useradd -m "$username"
 
-  useradd -m "$user"
+    home="/home/$username"
 
-  mkdir -p /home/"$user"/Documents
-  mkdir -p /home/"$user"/Downloads
-  mkdir -p /home/"$user"/Work
+    # Skapa mappar
+    mkdir -p "$home/Documents"
+    mkdir -p "$home/Downloads"
+    mkdir -p "$home/Work"
 
-  chmod 700 /home/"$user"/Documents
-  chmod 700 /home/"$user"/Downloads
-  chmod 700 /home/"$user"/Work
+    # Sätt rättigheter (endast ägare)
+    chmod 700 "$home/Documents"
+    chmod 700 "$home/Downloads"
+    chmod 700 "$home/Work"
 
-  echo "Välkommen $user" > /home/"$user"/welcome.txt
-  echo "" >> /home/"$user"/welcome.txt
-  echo "Andra användare:" >> /home/"$user"/welcome.txt
-  cut -d: -f1 /etc/passwd >> /home/"$user"/welcome.txt
+    # Se till att användaren äger allt
+    chown -R "$username:$username" "$home"
 
-  chown -R "$user":"$user" /home/"$user"
+    # Skapa welcome.txt
+    {
+        echo "Välkommen $username"
+        echo ""
+        echo "Andra användare i systemet:"
+        cut -d: -f1 /etc/passwd
+    } > "$home/welcome.txt"
+
+    chown "$username:$username" "$home/welcome.txt"
 
 done
