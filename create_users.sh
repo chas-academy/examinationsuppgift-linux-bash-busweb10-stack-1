@@ -1,53 +1,41 @@
 #!/bin/bash
 
-# -------------------------------------------------
-# create_users.sh
-# Skapar användare, mappar och välkomstfil
-# Endast root får köra scriptet
-# -------------------------------------------------
-
-# 1. Kontrollera root
+# 1. Root check
 if [ "$EUID" -ne 0 ]; then
-  echo "Fel: Du måste köra som root (sudo)."
+  echo "Must be root"
   exit 1
 fi
 
-# 2. Kontrollera att minst en användare skickas in
-if [ "$#" -eq 0 ]; then
-  echo "Användning: $0 användare1 användare2 ..."
+# 2. Check arguments
+if [ $# -eq 0 ]; then
+  echo "Usage: $0 user1 user2 ..."
   exit 1
 fi
 
-# 3. Loop genom alla användare
+# 3. Loop users
 for user in "$@"
 do
-  echo "Skapar användare: $user"
-
-  # Skapa användare (med hemkatalog)
   useradd -m "$user"
 
-  # Definiera hemkatalog
   home="/home/$user"
 
-  # 4. Skapa katalogstruktur
+  # Create folders
   mkdir -p "$home/Documents"
   mkdir -p "$home/Downloads"
   mkdir -p "$home/Work"
 
-  # 5. Rättigheter (endast ägare har access)
+  # Permissions
   chmod 700 "$home/Documents"
   chmod 700 "$home/Downloads"
   chmod 700 "$home/Work"
 
-  # 6. Skapa welcome-fil
+  # Welcome file
   echo "Välkommen $user" > "$home/welcome.txt"
   echo "" >> "$home/welcome.txt"
-  echo "Andra användare i systemet:" >> "$home/welcome.txt"
+  echo "Andra användare:" >> "$home/welcome.txt"
   cut -d: -f1 /etc/passwd >> "$home/welcome.txt"
 
-  # 7. Sätt korrekt ägarskap
+  # Ownership
   chown -R "$user:$user" "$home"
 
 done
-
-echo "Alla användare skapade!"
