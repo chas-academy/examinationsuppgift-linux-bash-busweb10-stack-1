@@ -1,41 +1,55 @@
 #!/bin/bash
 
-# 1. Root check
+# =========================================
+# Script för att skapa användare
+# Skapar även mappar och welcome.txt
+# =========================================
+
+# Kontrollera att scriptet körs som root
 if [ "$EUID" -ne 0 ]; then
-  echo "Must be root"
-  exit 1
+    echo "Du måste köra scriptet som root!"
+    exit 1
 fi
 
-# 2. Check arguments
-if [ $# -eq 0 ]; then
-  echo "Usage: $0 user1 user2 ..."
-  exit 1
-fi
-
-# 3. Loop users
-for user in "$@"
+# Loopar igenom alla användarnamn som skickas in
+for username in "$@"
 do
-  useradd -m "$user"
 
-  home="/home/$user"
+    echo "Skapar användare: $username"
 
-  # Create folders
-  mkdir -p "$home/Documents"
-  mkdir -p "$home/Downloads"
-  mkdir -p "$home/Work"
+    # Skapa användaren och hemkatalog
+    useradd -m "$username"
 
-  # Permissions
-  chmod 700 "$home/Documents"
-  chmod 700 "$home/Downloads"
-  chmod 700 "$home/Work"
+    # Sätt sökväg till användarens hemkatalog
+    home_dir="/home/$username"
 
-  # Welcome file
-  echo "Välkommen $user" > "$home/welcome.txt"
-  echo "" >> "$home/welcome.txt"
-  echo "Andra användare:" >> "$home/welcome.txt"
-  cut -d: -f1 /etc/passwd >> "$home/welcome.txt"
+    # Skapa mappar
+    mkdir -p "$home_dir/Documents"
+    mkdir -p "$home_dir/Downloads"
+    mkdir -p "$home_dir/Work"
 
-  # Ownership
-  chown -R "$user:$user" "$home"
+    # Ändra ägare till användaren
+    chown -R "$username:$username" "$home_dir"
+
+    # Sätt rättigheter
+    chmod 700 "$home_dir/Documents"
+    chmod 700 "$home_dir/Downloads"
+    chmod 700 "$home_dir/Work"
+
+    # Skapa welcome.txt
+    welcome_file="$home_dir/welcome.txt"
+
+    echo "Välkommen $username" > "$welcome_file"
+
+    echo "" >> "$welcome_file"
+    echo "Andra användare i systemet:" >> "$welcome_file"
+
+    # Lista alla användare
+    cut -d: -f1 /etc/passwd >> "$welcome_file"
+
+    # Ägaren ska vara användaren
+    chown "$username:$username" "$welcome_file"
 
 done
+
+chown -R ...
