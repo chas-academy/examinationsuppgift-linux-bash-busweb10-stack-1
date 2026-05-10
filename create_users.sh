@@ -1,46 +1,53 @@
 #!/bin/bash
+# --------------------------------------------
+# Skapar användare + katalogstruktur + welcome
+# Endast root får köra scriptet
+# --------------------------------------------
 
-# Kontrollera att scriptet körs som root
+# 1. Kontrollera root
 if [ "$EUID" -ne 0 ]; then
-    echo "Du måste köra scriptet som root!"
-    exit 1
+  echo "Fel: Du måste köra som root!"
+  exit 1
 fi
 
-# Kontrollera att minst ett användarnamn skickas in
-if [ $# -eq 0 ]; then
-    echo "Ange minst ett användarnamn"
-    exit 1
+# 2. Kontrollera att argument finns
+if [ "$#" -eq 0 ]; then
+  echo "Användning: $0 användare1 användare2 ..."
+  exit 1
 fi
 
-# Loop genom alla användare
-for username in "$@"
+# 3. Loop genom alla användare
+for user in "$@"
 do
-    # Skapa användare
-    useradd -m "$username"
+  echo "Skapar användare: $user"
 
-    home="/home/$username"
+  # Skapa användare (utan fel om redan finns)
+  id "$user" &>/dev/null
+  if [ $? -ne 0 ]; then
+    useradd -m "$user"
+  fi
 
-    # Skapa mappar
-    mkdir -p "$home/Documents"
-    mkdir -p "$home/Downloads"
-    mkdir -p "$home/Work"
+  HOME_DIR="/home/$user"
 
-    # Sätt rättigheter (endast ägare)
-    chmod 700 "$home/Documents"
-    chmod 700 "$home/Downloads"
-    chmod 700 "$home/Work"
+  # 4. Skapa kataloger
+  mkdir -p "$HOME_DIR/Documents"
+  mkdir -p "$HOME_DIR/Downloads"
+  mkdir -p "$HOME_DIR/Work"
 
-    # Se till att användaren äger allt
-    chown -R "$username:$username" "$home"
+  # 5. Sätt rättigheter (endast ägare)
+  chmod 700 "$HOME_DIR/Documents"
+  chmod 700 "$HOME_DIR/Downloads"
+  chmod 700 "$HOME_DIR/Work"
 
-    # Skapa welcome.txt
-    {
-        echo "Välkommen $username"
-        echo ""
-        echo "Andra användare i systemet:"
-        cut -d: -f1 /etc/passwd
-    } > "$home/welcome.txt"
+  # 6. Skapa welcome-fil
+  echo "Välkommen $user" > "$HOME_DIR/welcome.txt"
+  echo "" >> "$HOME_DIR/welcome.txt"
+  echo "Andra användare i systemet:" >> "$HOME_DIR/welcome.txt"
+  cut -d: -f1 /etc/passwd >> "$HOME_DIR/welcome.txt"
 
-    chown "$username:$username" "$home/welcome.txt"
+  # 7. Sätt ägare korrekt
+  chown -R "$user:$user" "$HOME_DIR"
 
 done
+
+echo "Klart!"
